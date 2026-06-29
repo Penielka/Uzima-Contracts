@@ -39,6 +39,7 @@ mod test;
 
 mod errors;
 mod events;
+pub mod fhir_consent;
 
 pub use errors::Error;
 
@@ -96,6 +97,17 @@ pub struct PatientConsentManagement;
 
 #[contractimpl]
 impl PatientConsentManagement {
+    /// Initialize the contract with an admin address. Can only be called once.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     -- initialize \
+    ///     --admin $(soroban config identity address admin)
+    /// ```
     pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         admin.require_auth();
         if env.storage().instance().has(&DataKey::Initialized) {
@@ -108,6 +120,18 @@ impl PatientConsentManagement {
         Ok(())
     }
 
+    /// Grant consent for a healthcare provider to access patient data.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source patient \
+    ///     --network local \
+    ///     -- grant_consent \
+    ///     --patient $(soroban config identity address patient) \
+    ///     --provider GD4GNYUTXW6VMJ4VKD5DJT343YN5ESTTLHNRUQCFXC7NXEZSWMHQSQFSA
+    /// ```
     pub fn grant_consent(env: Env, patient: Address, provider: Address) -> Result<(), Error> {
         patient.require_auth();
         Self::require_initialized(&env)?;
@@ -245,6 +269,18 @@ impl PatientConsentManagement {
         Ok(granted)
     }
 
+    /// Revoke previously granted consent.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source patient \
+    ///     --network local \
+    ///     -- revoke_consent \
+    ///     --patient $(soroban config identity address patient) \
+    ///     --provider GD4GNYUTXW6VMJ4VKD5DJT343YN5ESTTLHNRUQCFXC7NXEZSWMHQSQFSA
+    /// ```
     pub fn revoke_consent(env: Env, patient: Address, provider: Address) -> Result<(), Error> {
         patient.require_auth();
         Self::require_initialized(&env)?;
@@ -291,6 +327,19 @@ impl PatientConsentManagement {
         record.active && !Self::is_consent_expired(env, record)
     }
 
+    /// Check if a patient has active consent for a provider.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source doctor \
+    ///     --network local \
+    ///     --dry-run \
+    ///     -- check_consent \
+    ///     --patient GA4GNYUTXW6VMJ4VKD5DJT343YN5ESTTLHNRUQCFXC7NXEZSWMHQSQFSA \
+    ///     --provider GD4GNYUTXW6VMJ4VKD5DJT343YN5ESTTLHNRUQCFXC7NXEZSWMHQSQFSA
+    /// ```
     pub fn check_consent(env: Env, patient: Address, provider: Address) -> Result<bool, Error> {
         Self::require_initialized(&env)?;
         let key = DataKey::ProviderIndex(patient.clone(), provider.clone());

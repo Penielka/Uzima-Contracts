@@ -1,0 +1,17 @@
+# Dockerfile.dev — Development environment for Uzima Contracts
+FROM rust:1.92.0-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential \
+    jq \
+    shellcheck \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup target add wasm32-unknown-unknown && \
+    rustup component add rustfmt clippy rust-src
+
+RUN cargo install --locked soroban-cli --version 21.7.7
+
+WORKDIR /workspace

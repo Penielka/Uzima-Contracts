@@ -1,0 +1,83 @@
+version: "3.8"
+
+# docker-compose.yml — Local development environment for Uzima Contracts
+#
+# Usage:
+#   docker compose up -d          # Start Stellar node + deploy contracts
+#   docker compose logs -f        # Follow logs
+#   docker compose down -v        # Tear down everything
+#
+# Prerequisites:
+#   - Docker Engine 24.0+
+#   - Docker Compose v2
+
+services:
+  # ── Local Stellar Node with Soroban RPC ──────────────────────────────────
+  stellar:
+    image: stellar/quickstart:latest
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    command:
+      - "--local"
+      - "--enable-soroban-rpc"
+      - "--console"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    volumes:
+      - stellar_data:/opt/stellar
+    restart: unless-stopped
+
+  # ── Contract deployer (builds + deploys + seeds data) ────────────────────
+  # This is a one-shot container: it builds contracts, deploys them,
+  # and seeds test data, then exits. Expect docker compose ps to show
+  # it as "exited (0)" after initial setup completes.
+  contracts-deployer:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    depends_on:
+      stellar:
+        condition: service_healthy
+    network_mode: "service:stellar"
+    environment:
+      SOROBAN_RPC_URL: "http://localhost:8000/soroban/rpc"
+      SOROBAN_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
+    volumes:
+      - .:/workspace
+      - cargo_cache:/usr/local/cargo/registry
+    working_dir: /workspace
+    command: >
+      bash -c '
+        set -euo pipefail;
+        echo "=== Configuring local network ===";
+        soroban config network add local \
+          --rpc-url "$$SOROBAN_RPC_URL" \
+          --network-passphrase "$$SOROBAN_NETWORK_PASSPHRASE" \
+          2>/dev/null || true;
+
+        echo "=== Building contracts ===";
+        cargo build --release --target wasm32-unknown-unknown \
+          -p medical_records \
+          -p patient_consent_management \
+          -p healthcare_payment \
+          -p fhir_integration \
+          -p identity_registry;
+
+        echo "=== Seeding test data ===";
+        ./scripts/quickstart_dev.sh --skip-build;
+
+        echo "";
+        echo "==============================================";
+        echo "  Local dev environment is ready!";
+        echo "  RPC endpoint: http://localhost:8000/soroban/rpc";
+        echo "==============================================";
+      '
+
+volumes:
+  stellar_data:
+  cargo_cache:

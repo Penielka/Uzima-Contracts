@@ -53,6 +53,16 @@ impl ContractTemplate {
     ///
     /// # Auth
     /// No auth required — the deployer becomes the admin.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     -- initialize \
+    ///     --admin $(soroban config identity address admin)
+    /// ```
     pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
@@ -70,6 +80,16 @@ impl ContractTemplate {
     ///
     /// # Auth
     /// Requires auth from the **current** admin.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     -- transfer_admin \
+    ///     --new_admin GDT6C5XN6N4KMARBER2KEJCQA7NGK7IE46YH4XQLAWXI5QPLFXXOB7KJ
+    /// ```
     pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         let admin = Self::get_admin(&env)?;
         // Always call require_auth() before any state changes.
@@ -84,6 +104,17 @@ impl ContractTemplate {
     ///
     /// # Auth
     /// Requires auth from the admin.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     -- update_data \
+    ///     --caller $(soroban config identity address admin) \
+    ///     --data "Hello, Stellar!"
+    /// ```
     pub fn update_data(env: Env, caller: Address, data: String) -> Result<(), Error> {
         // 1. Authenticate the caller first.
         caller.require_auth();
@@ -116,6 +147,16 @@ impl ContractTemplate {
     // -----------------------------------------------------------------------
 
     /// Return the current admin address.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     --dry-run \
+    ///     -- get_admin
+    /// ```
     pub fn get_admin(env: &Env) -> Result<Address, Error> {
         env.storage()
             .instance()
@@ -124,6 +165,16 @@ impl ContractTemplate {
     }
 
     /// Return the stored data, if any.
+    ///
+    /// # Example (Soroban CLI)
+    /// ```bash
+    /// soroban contract invoke \
+    ///     --id $CONTRACT_ID \
+    ///     --source admin \
+    ///     --network local \
+    ///     --dry-run \
+    ///     -- get_data
+    /// ```
     pub fn get_data(env: Env) -> Option<ContractData> {
         env.storage().persistent().get(&DataKey::Data)
     }

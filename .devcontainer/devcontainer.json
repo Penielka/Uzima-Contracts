@@ -1,0 +1,43 @@
+{
+  "name": "Uzima Contracts",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-1-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "1.92.0",
+      "profile": "minimal"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb",
+        "fill-labs.dependi",
+        "github.vscode-github-actions",
+        "ms-azuretools.vscode-docker",
+        "yzhang.markdown-all-in-one",
+        "timonwong.shellcheck"
+      ],
+      "settings": {
+        "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+        "rust-analyzer.checkOnSave.command": "clippy",
+        "rust-analyzer.checkOnSave.allTargets": false,
+        "editor.formatOnSave": true,
+        "editor.rulers": [100],
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        }
+      }
+    }
+  },
+  "postCreateCommand": "rustup target add wasm32-unknown-unknown && rustup component add rustfmt clippy rust-src && cargo install --locked soroban-cli --version 21.7.7 && make build",
+  "remoteUser": "root",
+  "mounts": [
+    "source=${localWorkspaceFolder}/target,target=/workspaces/Uzima-Contracts/target,type=volume"
+  ],
+  "containerEnv": {
+    "SOROBAN_RPC_URL": "http://localhost:8000/soroban/rpc",
+    "SOROBAN_NETWORK_PASSPHRASE": "Standalone Network ; February 2017"
+  }
+}
